@@ -1,0 +1,45 @@
+[Unit]
+Description=NIAL CONTROL - serveur central
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nial
+Group=nial
+EnvironmentFile=/etc/nial-control/nial.env
+WorkingDirectory=/opt/nial-control/current
+ExecStart=/opt/nial-control/node/bin/node --no-warnings /opt/nial-control/current/dist/index.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+
+# Durcissement
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+ReadWritePaths=/var/lib/nial-control
+ReadOnlyPaths=/etc/nial-control
+MemoryMax=512M
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

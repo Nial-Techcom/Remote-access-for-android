@@ -1,0 +1,29 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+jobs:
+  server:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22.23.4' }
+      - name: La version de l'étiquette doit correspondre à server/package.json
+        run: |
+          [ "v$(node -p "require('./server/package.json').version")" = "${GITHUB_REF_NAME}" ] || { echo "Etiquette ${GITHUB_REF_NAME} != version du paquet"; exit 1; }
+      - run: (cd server && npm ci && npm run typecheck && npm test && npm audit --omit=dev --audit-level=high)
+      - run: shellcheck -x -S warning scripts/*.sh && bash scripts/test-update-cycle.sh
+      - run: scripts/package-release.sh release-out
+      - uses: actions/attest-build-provenance@v2
+        with: { subject-path: 'release-out/nial-control-server-*.tar.gz' }
+      - name: Publication
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          PRE=""; case "$GITHUB_REF_NAME" in *-*|v0.*) PRE="--prerelease" ;; esac
+          NOTES="$(awk -v v="${GITHUB_REF_NAME#v}" '$0 ~ "^## \\["v"\\]"{f=1;next} /^## \[/{f=0} f' CHANGELOG.md)"
+          gh release create "$GITHUB_REF_NAME" release-out/* $PRE --title "$GITHUB_REF_NAME" --notes "$NOTES"

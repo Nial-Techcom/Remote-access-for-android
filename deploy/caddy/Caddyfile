@@ -1,0 +1,28 @@
+# Reverse proxy TLS (certificat Let's Encrypt automatique). Remplacer le nom de domaine.
+nial.example.org {
+	encode zstd gzip
+	# Les en-tetes de securite principaux sont deja envoyes par l'application ; on retire la signature du serveur.
+	header -Server
+
+	# Limite de taille des requetes (l'application refuse deja > 64 Ko)
+	request_body {
+		max_size 128KB
+	}
+
+	# Les WebSocket (/ws/*) passent par la meme regle
+	reverse_proxy 127.0.0.1:8080 {
+		header_up X-Real-IP {remote_host}
+		# Delais longs pour les WebSocket et les flux audio
+		transport http {
+			read_timeout 0
+			dial_timeout 5s
+		}
+	}
+}
+
+# --- Option A : passerelle de flux separee (decommenter) ---
+# stream.nial.example.org {
+# 	reverse_proxy 127.0.0.1:8081 {
+# 		transport http { read_timeout 0 }
+# 	}
+# }

@@ -112,6 +112,11 @@ export function openDb(dataDir: string): Db {
 
 function migrate(db: Db): void {
   const current = (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
+  if (current > MIGRATIONS.length) {
+    // Retour arriere vers une version plus ancienne avec une base deja migree : on refuse de demarrer
+    // plutot que de tourner sur un schema inconnu (restaurer la sauvegarde pre-mise-a-jour, voir UPDATE.md).
+    throw new Error(`La base de donnees est en version ${current}, plus recente que ce serveur (${MIGRATIONS.length}). Restaurez la sauvegarde faite avant la mise a jour (voir UPDATE.md).`);
+  }
   for (let v = current; v < MIGRATIONS.length; v++) {
     db.exec('BEGIN');
     try {
@@ -124,5 +129,7 @@ function migrate(db: Db): void {
     }
   }
 }
+
+export const SCHEMA_VERSION = (): number => MIGRATIONS.length;
 
 export const nowMs = (): number => Date.now();

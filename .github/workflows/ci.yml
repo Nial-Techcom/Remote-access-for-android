@@ -1,0 +1,36 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+permissions: { contents: read }
+jobs:
+  server:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22.23.4', cache: npm, cache-dependency-path: server/package-lock.json }
+      - run: npm ci --ignore-scripts=false
+        working-directory: server
+      - run: npm run typecheck && npm test
+        working-directory: server
+      - name: Audit des dépendances (production, échec dès « high »)
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: server
+  scripts:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22.23.4' }
+      - run: shellcheck -x -S warning scripts/*.sh
+      - run: bash scripts/test-update-cycle.sh
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Détection de secrets (gitleaks)
+        run: |
+          curl -fsSL -o gl.tgz https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz
+          tar -xzf gl.tgz gitleaks && ./gitleaks detect --source . --redact --exit-code 1

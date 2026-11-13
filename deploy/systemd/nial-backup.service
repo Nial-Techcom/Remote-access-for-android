@@ -1,0 +1,6 @@
+[Unit]
+Description=NIAL CONTROL - sauvegarde
+
+[Service]
+Type=oneshot
+ExecStart=/opt/nial-control/current/scripts/backup.sh
